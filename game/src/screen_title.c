@@ -40,7 +40,7 @@
 static int framesCounter = 0;
 static int finishScreen = 0;
 // Um byte eh representado por 3 digitos decimais + null
-static char ip_addr_arr[IP_SIZE][4] = {{0},{0},{0},{0}}; 
+static char ip_addr_arr[IP_SIZE][4] = {{0, 0, 0, 0},{0, 0, 0, 0},{0, 0, 0, 0},{0, 0, 0, 0}};
 static unsigned char mouse_on_text = 0;
 // codigo da sala
 static int codeCount = 0;
@@ -50,8 +50,8 @@ static Vector2 text_code = {0};
 
 static int ip_loc_y = 0;
 static int ip_loc_x = 0;
-static Rectangle ip_rects[IP_SIZE] = {0};
-static int letterCount[IP_SIZE] = {0};
+static Rectangle ip_rects[IP_SIZE] = {0, 0, 0, 0 };
+static int letterCount[IP_SIZE] = { 0, 0, 0, 0 };
 static bool show_wrong_ip_msg = false;
 static Vector2 wrong_ip_msg_loc = { 0 };
 static const char* wrong_ip_msg = "O ENDEREÇO IP É INVÁLIDO";
@@ -74,10 +74,10 @@ void InitTitleScreen(void)
     // memset(ip_addr_arr, 0, 16 * sizeof(char)); // 12 numbers, 3 dots AND THE NULL TERMINATOR
     // letterCount = {0};
     mouse_on_text = 0;
-    show_wrong_ip_msg = false;
+    //show_wrong_ip_msg = false;
 
-    float mid_height = GetScreenHeight() / 2;
-    float mid_width  = GetScreenWidth()  / 2;
+    float mid_height = GetScreenHeight() / 2.0f;
+    float mid_width  = GetScreenWidth()  / 2.0f;
 
     // posição do titulo da caixa de dialogo
     ip_title_loc = MeasureTextEx(font, ip_title, 64, 4);
@@ -133,11 +133,16 @@ void UpdateTitleScreen(void)
         int len = 0;
         for (int i = 0; i < IP_SIZE; ++i) {
              int x = letterCount[i];
+             bool is_most_sig = true;
              for (int j = 0; j < x; ++j) {
-                 ip_addr_str[j+len] = ip_addr_arr[i][j];
+                 char v = ip_addr_arr[i][j];
+                 if (v == '0' && j != x-1 && is_most_sig) continue;
+                 if (v != '0') is_most_sig = true;
+                 ip_addr_str[len] = v;
+                 len++;
              }
-             ip_addr_str[len+x] = '.';
-             len+=x+1;
+             ip_addr_str[len] = '.';
+             len++;
         }
         // I LOVE PROGRAMMING
         // We overide the last dot
@@ -152,8 +157,8 @@ void UpdateTitleScreen(void)
         // raylib_game.c agora pode fazer o fork e
         // conectar nesse ip
         // a detecção é pela variavel finishScreen
-        printf("%s\n", ip_addr_str);
-        printf("%s\n", room_code);
+        LOG_DEBUG("%s\n", ip_addr_str);
+        LOG_DEBUG("%s\n", room_code);
         return;
     }
     Vector2 mouse = GetMousePosition();
@@ -260,6 +265,7 @@ bool IpIsValid(void) {
             return false;
         }
     }
+    return true;
 }
 
 // Title Screen should finish?

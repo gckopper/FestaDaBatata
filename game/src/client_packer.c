@@ -6,27 +6,21 @@
  * `((r[8] & is_long) >> 7) + 1 + ROOM_CODE_SIZE`
  * return buffer retorna um buffer contendo a mensagem
  */
-unsigned char* const to_send(ClientMessage* const m) {
+void to_send(ClientMessage* const m, unsigned char* const out) {
     if (m == 0) {
 		LOG_DEBUG("Erro! Função to_send recebeu um ponteiro nulo\n");
-        return 0;
+        return;
     }
 	unsigned char longness = (m->msg_id & 0b1000'0000) >> 7;
-	unsigned char* result = calloc(ROOM_CODE_SIZE+1+longness, sizeof(char));
-    if (result == 0) {
-		LOG("Calloc falhou! Abortando!");
-		exit(8);
-        return 0;
-    }
-	memcpy_s(result, ROOM_CODE_SIZE, m->room_code, ROOM_CODE_SIZE);
-	result[ROOM_CODE_SIZE] = m->msg_id;
+	memcpy_s(out, ROOM_CODE_SIZE, m->room_code, ROOM_CODE_SIZE);
+	out[ROOM_CODE_SIZE] = m->msg_id;
 	if (longness) {
-		result[ROOM_CODE_SIZE+1] = m->optional;
+		out[ROOM_CODE_SIZE+1] = m->optional;
 	}
 	// fica pro consumidor dar um free nesse treco
 	// o consumidor pode dar um result[8] & is_long pra
 	// saber se tem 9 ou 10 bytes :)
-	return result;
+	return;
 }
 
 ClientMessage* const new_message() {
@@ -36,19 +30,14 @@ ClientMessage* const new_message() {
 		exit(8);
 		return 0;
 	}
-	result->room_code = (unsigned char*)calloc(ROOM_CODE_SIZE, sizeof(char));
+	result->room_code = 0;
 	result->msg_id = 0;
 	result->optional = 0;
 	return result;
 }
 
 void set_room_code(ClientMessage* const m, const unsigned char* const room) {
-	int r = memcpy_s(m->room_code, ROOM_CODE_SIZE, room, ROOM_CODE_SIZE);
-	if (r == 0) {
-		LOG("memcpy_s falhou! Abortando!");
-		exit(8);
-		return;
-	}
+	m->room_code = room;
 	return;
 }
 

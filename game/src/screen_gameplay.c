@@ -1,4 +1,4 @@
-/**********************************************************************************************
+﻿/**********************************************************************************************
 *
 *   raylib - Advance Game template
 *
@@ -28,7 +28,7 @@
 
 #define NOTIF_FOR 180
 
-static const char* const notif_msg[] = {"� A SUA VEZ", "O JOGO EST� COME�ANDO", "A��O INV�LIDA"};
+static const char* const notif_msg[] = {"É A SUA VEZ", "O JOGO ESTÁ COMEÇANDO", "AÇÃO INVÁLIDA"};
 static Vector2 notif_loc[] = {{0}, {0}, {0}};
 //----------------------------------------------------------------------------------
 // Module Variables Definition (local)
@@ -64,21 +64,54 @@ static unsigned char current_turn = 0;
 #define READY_BOX_WIDTH 64
 #define READY_BOX_HEIGHT 64
 
+#define FIRST_BLOCK_X 112
+#define FIRST_BLOCK_Y 381
+
+#define DOT_X 623
+#define DOT_Y 16
+
 #define READY_BOX_PAD_X 80
 // formas
 static int player_counters[4] = {104, 136, 265, 296};
-static Rectangle ready_box = { 0 };
-static Rectangle unready_box = {0};
+static Rectangle green_confirm_box = { 0 };
+static Rectangle red_reject_box = {0};
 static const Color bg_color = { 0xf6, 0x94, 0xe8, 0xff };
 static const Color text_color = { 0xc8, 0x2b, 0xb2, 0xff };
+static const Color player_colors[] = { {
+    230, 41, 55, 255
+    }, {
+    253, 249, 0, 255
+    }, {
+    0, 228, 48, 255
+    }, {
+    0, 121, 241, 255
+} };
 
-static Vector2 ready_txt;
-static char ready_str[] = "READY/UNREADY";
+static Vector2 ready_txt = { 0 };
 static Vector2 roll_txt = { 0 };
+static Vector2 intersect_txt = { 0 };
 static Vector2 buy_txt = { 0 };
+static char ready_str[] = "Pronto/Não pronto";
 static char roll_str[] = "Rolar o dado";
+static char intersect_str[] = "^/^";
 static char buy_str[] = "Comprar batata";
 
+static enum Direction direction = up;
+// é rapido e no final isso da só 16 bytes então vale a pena
+static const char arrows[2][4][2] = {
+    {
+        {'^', '>'}, {'v','>'}, { '^','v' }, { '^','v' },
+    },
+    {
+        {'^', '<'}, {'v','<'}, { '^','v' }, { '^','v' },
+    },
+};
+
+// hash perfeito k>>5 ^ ((k>>1)&1)
+static enum Direction arrow_to_direction[] = {right, left, down, up};
+int hash(char k) {
+    return k >> 5 ^ ((k >> 1) & 1);
+}
 
 //----------------------------------------------------------------------------------
 // Gameplay Screen Functions Definition
@@ -97,6 +130,7 @@ void InitGameplayScreen(void)
     notif = 0;
     current_round = 0;
     frame_counter = NOTIF_FOR;
+    LOG_DEBUG("IP: %s\n", ip_addr_str);
     int r = start_conn(room_code, ip_addr_str);
     if (r == -5) {
         // manda o usuario para a tela do ip
@@ -105,27 +139,29 @@ void InitGameplayScreen(void)
         return;
     }
     else if (r < 0) {
-		// termina o jogo
-		finishScreen = 1;
-		return;
+        LOG_DEBUG("Tivemos um erro em start_conn %d\n", r);
+        // termina o jogo
+        finishScreen = 1;
+        return;
     }
-    float mid_height = GetScreenHeight() / 2;
-    float mid_width  = GetScreenWidth()  / 2;
+    float mid_height = GetScreenHeight() / 2.0f;
+    float mid_width  = GetScreenWidth()  / 2.0f;
     for (int i = 0; i < 3; ++i) {
         Vector2 size = MeasureTextEx(font, notif_msg[i], 64, 4);
         notif_loc[i].y = mid_height - (size.y / 2);
         notif_loc[i].x = mid_width  - (size.x / 2);
-	}
-	ready_box.x = READY_BOX_X;
-	ready_box.y = READY_BOX_Y;
-	ready_box.width = READY_BOX_WIDTH;
-	ready_box.height = READY_BOX_HEIGHT;
-    unready_box.x = READY_BOX_X + READY_BOX_PAD_X;
-    unready_box.y = READY_BOX_Y;
-    unready_box.width = READY_BOX_WIDTH;
-    unready_box.height = READY_BOX_HEIGHT;
+    }
+    green_confirm_box.x = READY_BOX_X;
+    green_confirm_box.y = READY_BOX_Y;
+    green_confirm_box.width = READY_BOX_WIDTH;
+    green_confirm_box.height = READY_BOX_HEIGHT;
+    red_reject_box.x = READY_BOX_X + READY_BOX_PAD_X;
+    red_reject_box.y = READY_BOX_Y;
+    red_reject_box.width = READY_BOX_WIDTH;
+    red_reject_box.height = READY_BOX_HEIGHT;
     ready_txt = MeasureTextEx(font, ready_str, 20.0f, 4.0f);
     roll_txt = MeasureTextEx(font, roll_str, 20.0f, 4.0f);
+    intersect_txt = MeasureTextEx(font, intersect_str, 20.0f, 4.0f);
     buy_txt = MeasureTextEx(font, buy_str, 20.0f, 4.0f);
 }
 
@@ -134,53 +170,87 @@ void UpdateGameplayScreen(void)
 {
     int nof_msg = recv_server_msg(buf);
     if (nof_msg < 0) {
-		// termina o jogo
-		finishScreen = 1;
-		return;
+        // termina o jogo
+        finishScreen = 1;
+        return;
     }
     else if (nof_msg != 0) {
         // processa as mensagens
+        int diff_pos = 0;
+        int pos = 0;
         for (int i = 0; i < nof_msg; i++) {
-            switch (buf[i].msg_id)
+            LOG("Message id: %d\n", (unsigned char)(buf[i].msg_id));
+            switch ((unsigned char)buf[i].msg_id)
             {
             case n_game_start:
                 // inicia o jogo
                 current_round = 1;
                 notif = 2;
-				break;
-            case n_turn_start:
-				// � a vez do jogador
-                current_turn = (current_turn + 1)%player_count;
-				is_my_turn = current_turn == player_id;
+                current_turn = 0;
+                is_my_turn = (0 == player_id);
+                LOG_DEBUG("%s\n", is_my_turn ? "EU COMECO" : "EU NÃO COMECO");
+                LOG_DEBUG("Meu id é: %d\n", player_id);
                 if (is_my_turn) {
-					notif = 1;
-				}
-				break;
+                    notif = 1;
+                }
+                break;
+            case n_turn_start:
+                // é a vez do jogador
+                current_turn = (current_turn + 1)%player_count;
+                is_my_turn = (current_turn == player_id);
+                if (is_my_turn) {
+                    notif = 1;
+                }
+                break;
             case n_emote:
-				// termina o jogo
-				PlaySound(fxCoin);
-			    break;
+                // termina o jogo
+                PlaySound(fxCoin);
+                break;
             case n_buy_batata:
-                buy_batata_available = true;
+                batatas[buf[i].data[0]]++;
                 break;
             case r_roll_dice:
                 dice_rolled = buf[i].data[2];
             case r_move:
             case n_move:
                 // move o jogador
+                player_positions[current_turn] = (int)(buf[i].data[0]);
+                player_coins[current_turn] = buf[i].data[1];
+                intersection = false;
+                buy_batata_available = false;
+                break;
+            case r_roll_dice_intersect:
+                pos = (int)(buf[i].data[0]);
+                diff_pos = (int)(buf[i].data[0]) - player_positions[current_turn];
+                // MAGIA... brincadeira é só: If the source type is bool,
+                // the value false is converted to zero and the value true
+                // is converted to one.
+                direction = (diff_pos > 0) + 2;
+                // verifica se nos movemos +-BOARD_WIDTH para saber se estamos subindo
+                // ou descendo
+                if (diff_pos >= BOARD_WIDTH || diff_pos <= -BOARD_WIDTH) {
+                    direction = diff_pos < 0;
+                }
+                intersect_str[0] = arrows[(pos % 8) > 4][direction][0];
+                intersect_str[2] = arrows[(pos % 8) > 4][direction][1];
                 player_positions[current_turn] = buf[i].data[0];
                 player_coins[current_turn] = buf[i].data[1];
-				break;
-            case n_join:
-				// adiciona um jogador
-				player_count++;
-				break;
-            case r_roll_dice_intersect:
+                LOG_DEBUG("o play %d agora esta em %d e estamos na intersect %d\n", current_turn, player_positions[current_turn], direction);
                 intersection = true;
+                break;
+            case n_join:
+                // adiciona um jogador
+                player_count++;
                 break;
             case r_can_buy_batata:
                 buy_batata_available = true;
-			break;
+                player_positions[current_turn] = buf[i].data[0];
+                player_coins[current_turn] = buf[i].data[1];
+                break;
+            case r_joined:
+                player_count = buf[i].data[0];
+                player_id = player_count - 1;
+                break;
             case e_decode:
             case e_not_your_turn:
             case e_invalid_action:
@@ -199,16 +269,54 @@ void UpdateGameplayScreen(void)
                 break;
             case n_game_end:
             default:
+                LOG_DEBUG("AAAAAAAAAAAAAAAAAAAAAAAAAAAA\n");
                 finishScreen = 1;
                 return;
             }
-		}
+        }
     }
-    // Press enter or tap to change to ENDING screen
-    if (IsKeyPressed(KEY_ENTER) || IsGestureDetected(GESTURE_TAP))
+    Vector2 mouse = GetMousePosition();
+    // set
+    bool green_box_pressed = CheckCollisionPointRec(mouse, green_confirm_box);
+    bool red_box_pressed = CheckCollisionPointRec(mouse, red_reject_box);
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && (green_box_pressed || red_box_pressed))
     {
-        finishScreen = 1;
-        PlaySound(fxCoin);
+        ClientMessage m = {0};
+        m.room_code = room_code;
+        if (green_box_pressed) {
+            if (current_round == 0) {
+                is_ready = true;
+                m.msg_id = ready;
+            }
+            else if (buy_batata_available) {
+                m.msg_id = buy_batata;
+            } 
+            else if (intersection) {
+                m.msg_id = move;
+                m.optional = arrow_to_direction[hash(intersect_str[0])];
+            }
+            else if (is_my_turn) {
+                m.msg_id = roll_dice;
+            }
+        }
+        // unset
+        if (red_box_pressed) {
+            if (current_round == 0) {
+                is_ready = false;
+                m.msg_id = unready;
+            }
+            else if (buy_batata_available) {
+                m.msg_id = move;
+            }
+            else if (intersection) {
+                m.msg_id = move;
+                m.optional = arrow_to_direction[hash(intersect_str[2])];
+            }
+            else if (is_my_turn) {
+                notif = 3;
+            }
+        }
+        send_client_msg(&m);
     }
 }
 
@@ -228,7 +336,7 @@ void DrawGameplayScreen(void)
         char coins_text[4] = {0, 0, 0, 0};
         if (sprintf_s(coins_text, 4, "%.3d", player_coins[i]) == 0) {
             LOG("sprintf_s() falhou\n");
-			return;
+            return;
         }
         Vector2 coins_loc = {COIN_COUNTER_X, player_counters[i]};
         DrawTextEx(font, coins_text, coins_loc, 32.0f, 4.0f, text_color);
@@ -236,37 +344,50 @@ void DrawGameplayScreen(void)
         sprintf_s(batata_text, 4, "%.3d", batatas[i]);
         Vector2 batata_loc = { BATATA_COUNTER_X, player_counters[i] };
         DrawTextEx(font, batata_text, batata_loc, 32.0f, 4.0f, text_color);
+        int pos = player_positions[i];
+        char a = 'ç';
+        int pos_x = 80 * (player_positions[i] % BOARD_WIDTH);
+        int pos_y = 80 * (player_positions[i] / BOARD_WIDTH);
+        DrawCircle(FIRST_BLOCK_X + pos_x, FIRST_BLOCK_Y - pos_y, 30.0f, player_colors[i]);
     }
     if (current_round == 0) {
-        // desenha o bot�o de ready
-        DrawRectangleRec(ready_box, GREEN);
-        DrawRectangleRec(unready_box, RED);
-        DrawTextEx(font, ready_str, (Vector2) { unready_box.x - 8.0f - (ready_txt.x / 2), ready_box.y - ready_txt.y - 4.0f }, 20.0f, 4.0f, text_color);
+        // desenha o botão de ready
+        DrawRectangleRec(green_confirm_box, GREEN);
+        DrawRectangleRec(red_reject_box, RED);
+        DrawTextEx(font, ready_str, (Vector2) { red_reject_box.x - 8.0f - (ready_txt.x / 2), green_confirm_box.y - ready_txt.y - 4.0f }, 20.0f, 4.0f, text_color);
+    } else 
+        if (buy_batata_available) {
+            // desenha o botão de rolar o dado
+            DrawRectangleRec(green_confirm_box, GREEN);
+            DrawRectangleRec(red_reject_box, RED);
+            DrawTextEx(font, buy_str, (Vector2) { red_reject_box.x - 8.0f - (buy_txt.x / 2), green_confirm_box.y - buy_txt.y - 4.0f }, 20.0f, 4.0f, text_color);
+    } else
+     if (intersection) {
+         // desenha o botão de rolar o dado
+         DrawRectangleRec(green_confirm_box, GREEN);
+         DrawRectangleRec(red_reject_box, RED);
+         DrawTextEx(font, intersect_str, (Vector2) { red_reject_box.x - 8.0f - (intersect_txt.x / 2), green_confirm_box.y - intersect_txt.y - 4.0f }, 20.0f, 4.0f, text_color);
     } else
     if (is_my_turn) {
-		// desenha o bot�o de rolar o dado
-        DrawRectangleRec(ready_box, GREEN);
-		DrawRectangleRec(unready_box, RED);
-		DrawTextEx(font, roll_str, (Vector2) { unready_box.x - 8.0f - (roll_txt.x / 2), ready_box.y - roll_txt.y - 4.0f }, 20.0f, 4.0f, text_color);
-	} else 
-    if (is_my_turn) {
-        // desenha o bot�o de rolar o dado
-        DrawRectangleRec(ready_box, GREEN);
-        DrawRectangleRec(unready_box, RED);
-        DrawTextEx(font, buy_str, (Vector2) { unready_box.x - 8.0f - (buy_txt.x / 2), ready_box.y - buy_txt.y - 4.0f }, 20.0f, 4.0f, text_color);
+        // desenha o botão de rolar o dado
+        DrawRectangleRec(green_confirm_box, GREEN);
+        DrawRectangleRec(red_reject_box, RED);
+        DrawTextEx(font, roll_str, (Vector2) { red_reject_box.x - 8.0f - (roll_txt.x / 2), green_confirm_box.y - roll_txt.y - 4.0f }, 20.0f, 4.0f, text_color);
     }
+
+    DrawCircle(DOT_X, DOT_Y + player_counters[current_turn], 8.0f, player_colors[current_turn]);
 
     if (notif > 0)
     {
-		if (frame_counter == NOTIF_FOR) {
-			frame_counter = 0;
-			notif = 0;
-		}
-		else {
-			frame_counter++;
-		    DrawTextEx(font, notif_msg[notif-1], notif_loc[notif-1], 64.0f, 4.0f, RED);
-		}
-		
+        if (frame_counter == NOTIF_FOR) {
+            frame_counter = 0;
+            notif = 0;
+        }
+        else {
+            frame_counter++;
+            DrawTextEx(font, notif_msg[notif-1], notif_loc[notif-1], 64.0f, 4.0f, WHITE);
+        }
+        
     }
     // TODO: Draw GAMEPLAY screen here!
     //  DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), PURPLE);

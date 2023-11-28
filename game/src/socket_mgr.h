@@ -6,6 +6,7 @@
 #define NODRAWTEXT
 #define _WINGDI_
 #define NOUSER 
+#define _KSMEDIA_
 
 #ifndef socket_manager_h
 #define socket_manager_h

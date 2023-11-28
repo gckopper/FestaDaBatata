@@ -66,7 +66,7 @@ int main(void)
 
 
     // Load global data (assets that must be available in all screens, i.e. font)
-    font = LoadFontEx("resources/RobotoMono-Regular.ttf", 128, 0, 256);
+    font = LoadFontEx("resources/RobotoMonoNerdFontMono-Regular.ttf", 128, 0, 1024);
     SetTextureFilter(font.texture, TEXTURE_FILTER_BILINEAR);
     music = LoadMusicStream("resources/ambient.ogg");
     fxCoin = LoadSound("resources/coin.wav");

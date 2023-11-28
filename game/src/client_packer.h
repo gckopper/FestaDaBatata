@@ -11,7 +11,7 @@
  * `((r[8] & is_long) >> 7) + 1 + ROOM_CODE_SIZE`
  * return buffer retorna um buffer contendo a mensagem
  */
-unsigned char* const to_send(ClientMessage* const m);
+void to_send(ClientMessage* const m, unsigned char* const out);
 
 ClientMessage* const new_message();
 
