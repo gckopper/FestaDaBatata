@@ -144,8 +144,8 @@ void InitGameplayScreen(void)
         finishScreen = 1;
         return;
     }
-    float mid_height = GetScreenHeight() / 2.0f;
-    float mid_width  = GetScreenWidth()  / 2.0f;
+    int mid_height = GetScreenHeight() / 2;
+    int mid_width  = GetScreenWidth()  / 2;
     for (int i = 0; i < 3; ++i) {
         Vector2 size = MeasureTextEx(font, notif_msg[i], 64, 4);
         notif_loc[i].y = mid_height - (size.y / 2);
@@ -268,6 +268,25 @@ void UpdateGameplayScreen(void)
             case r_ok:
                 break;
             case n_game_end:
+                for (int j = 0; j < player_count; ++j)
+                {
+                    // reusando a variavel pos pra não ter que criar
+                    // uma variavel nova já que estamos em um switch
+                    pos = (j * PODIUM_SIZE);
+                    podium[j].player_id = buf[i].data[pos];
+                    podium[j].batatas = buf[i].data[1 + pos];
+                    podium[j].bonus_type = buf[i].data[2 + pos];
+                    memcpy_s(&podium[j].coins, 8, buf[i].data + 3 + pos, 8);
+                    memcpy_s(&podium[j].steps, 8, buf[i].data + 11 + pos, 8);
+                    memcpy_s(&podium[j].emotes, 8, buf[i].data + 19 + pos, 8);
+                }
+                for (int j = player_count; j < MAX_PLAYERS; ++j)
+                {
+                    podium[j].player_id = MAX_PLAYERS;
+                }
+                stop_conn();
+                finishScreen = 1;
+                break;
             default:
                 LOG_DEBUG("AAAAAAAAAAAAAAAAAAAAAAAAAAAA\n");
                 finishScreen = 1;

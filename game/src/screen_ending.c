@@ -31,7 +31,14 @@
 //----------------------------------------------------------------------------------
 static int framesCounter = 0;
 static int finishScreen = 0;
-
+static Color text_color = {49, 64, 275};
+static Vector2 text_start = {0};
+static const char const header[] = "ID BATATAS MOEDAS BONUS";
+static float font_height = 0;
+static const float text_height = 48.0f;
+static const float text_spacing = 4.0f;
+static const char const format_string[] = "%.2u  %.5u  %.6u %.5u";
+static const char* const bonus_text[] = {"Moedas", "Passos", "Emotes"};
 //----------------------------------------------------------------------------------
 // Ending Screen Functions Definition
 //----------------------------------------------------------------------------------
@@ -42,6 +49,12 @@ void InitEndingScreen(void)
     // TODO: Initialize ENDING screen variables here!
     framesCounter = 0;
     finishScreen = 0;
+    int mid_width  = GetScreenWidth()  / 2;
+    int mid_height = GetScreenHeight() / 2;
+    Vector2 header_size = MeasureTextEx(font, header, text_height, text_spacing);
+    text_start.x = mid_width - (header_size.x / 2);
+    text_start.y = 10.0f;
+    font_height = header_size.y;
 }
 
 // Ending Screen Update logic
@@ -63,9 +76,18 @@ void DrawEndingScreen(void)
     // TODO: Draw ENDING screen here!
     DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), BLUE);
 
-    Vector2 pos = { 20, 10 };
-    DrawTextEx(font, "ENDING SCREEN", pos, (float)font.baseSize, 4, DARKBLUE);
-    DrawText("PRESS ENTER or TAP to RETURN to TITLE SCREEN", 120, 220, 20, DARKBLUE);
+    DrawTextEx(font, header, text_start, text_height, text_spacing, DARKBLUE);
+    char text[32] = { 0 };
+    Vector2 pos = { text_start.x, text_start.y };
+    for (int i = 0; i < MAX_PLAYERS; i++)
+    {
+        if (podium[i].player_id == MAX_PLAYERS) {
+            break;
+        }
+        sprintf_s(text, 32, format_string, podium[i].player_id, podium[i].batatas, podium[i].coins, podium[i].emotes);
+        pos.y += text_height;
+        DrawTextEx(font, text, pos, text_height, text_spacing, DARKBLUE);
+    }
 }
 
 // Ending Screen Unload logic

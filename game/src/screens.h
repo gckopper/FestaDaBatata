@@ -42,6 +42,7 @@ extern Sound fxCoin;
 extern Texture2D bgimg;
 extern char ip_addr_str[16];
 extern char* room_code;
+extern struct PlayerPodium* podium;
 
 #ifdef __cplusplus
 extern "C" {            // Prevents name mangling of functions

@@ -28,6 +28,7 @@ Sound fxCoin = { 0 };
 Texture2D bgimg = { 0 };
 char ip_addr_str[16] = { 0 };
 char* room_code;
+struct PlayerPodium* podium;
 
 //----------------------------------------------------------------------------------
 // Local Variables Definition (local to this module)
@@ -73,6 +74,7 @@ int main(void)
     Image imOrigin = LoadImage("resources/background.png");
     ImageFormat(&imOrigin, PIXELFORMAT_UNCOMPRESSED_R8G8B8);
     room_code = calloc(ROOM_CODE_SIZE+1, sizeof(char));
+    podium = calloc(MAX_PLAYERS, sizeof(struct PlayerPodium));
     
     bgimg = LoadTextureFromImage(imOrigin); // passa pra vram
     UnloadImage(imOrigin); // descarrega da ram
@@ -111,6 +113,7 @@ int main(void)
     UnloadSound(fxCoin);
     UnloadTexture(bgimg);
     free(room_code);
+    free(podium);
 
     CloseAudioDevice();     // Close audio context
 
