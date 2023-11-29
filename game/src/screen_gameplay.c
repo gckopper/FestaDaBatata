@@ -28,8 +28,8 @@
 
 #define NOTIF_FOR 180
 
-static const char* const notif_msg[] = {"É A SUA VEZ", "O JOGO ESTÁ COMEÇANDO", "AÇÃO INVÁLIDA"};
-static Vector2 notif_loc[] = {{0}, {0}, {0}};
+static const char* const notif_msg[] = {"É A SUA VEZ", "O JOGO ESTÁ COMEÇANDO", "AÇÃO INVÁLIDA", "VOCÊ ROLOU UM 0"};
+static Vector2 notif_loc[] = {{0}, {0}, {0}, {0}};
 //----------------------------------------------------------------------------------
 // Module Variables Definition (local)
 //----------------------------------------------------------------------------------
@@ -120,6 +120,16 @@ int hash(char k) {
 // Gameplay Screen Initialization logic
 void InitGameplayScreen(void)
 {
+    for (int i = 0; i < MAX_PLAYERS; i++)
+    {
+        player_coins[i] = 0;
+        batatas[i] = 0;
+        player_positions[i] = 0;
+    }
+    is_ready = false;
+    buy_batata_available = false;
+    intersection = false;
+    current_turn = 0;
     framesCounter = 0;
     finishScreen = 0;
     is_my_turn = false;
@@ -146,7 +156,7 @@ void InitGameplayScreen(void)
     }
     int mid_height = GetScreenHeight() / 2;
     int mid_width  = GetScreenWidth()  / 2;
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 4; ++i) {
         Vector2 size = MeasureTextEx(font, notif_msg[i], 64, 4);
         notif_loc[i].y = mid_height - (size.y / 2);
         notif_loc[i].x = mid_width  - (size.x / 2);
@@ -275,9 +285,7 @@ void UpdateGameplayScreen(void)
                     podium[j].current_coins = buf[i].data[2 + pos];
 
                     podium[j].bonus_type = buf[i].data[3 + pos];
-                    memcpy_s(&podium[j].coins, 8, buf[i].data + 4 + pos, 8);
-                    memcpy_s(&podium[j].steps, 8, buf[i].data + 12 + pos, 8);
-                    memcpy_s(&podium[j].emotes, 8, buf[i].data + 20 + pos, 8);
+                    memcpy_s(&podium[j].bonus, 8, buf[i].data + 4 + pos, 8);
                 }
                 for (int j = player_count; j < MAX_PLAYERS; ++j)
                 {

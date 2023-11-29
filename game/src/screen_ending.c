@@ -94,21 +94,7 @@ void DrawEndingScreen(void)
         if (podium[i].player_id == MAX_PLAYERS) {
             break;
         }
-        switch (podium[i].bonus_type)
-        {
-        case 0:
-            bonus = podium[i].coins;
-            break;
-        case 1:
-            bonus = podium[i].steps;
-            break;
-        case 2:
-            bonus = podium[i].emotes;
-            break;
-        default:
-            break;
-        }
-        sprintf_s(text, 32, format_string, podium[i].player_id, podium[i].batatas, podium[i].current_coins, bonus);
+        sprintf_s(text, 32, format_string, podium[i].player_id, podium[i].batatas, podium[i].current_coins, podium[i].bonus);
         pos.y += text_height;
         DrawTextEx(font, text, pos, text_height, text_spacing, DARKBLUE);
     }
