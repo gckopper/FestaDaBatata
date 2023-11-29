@@ -78,13 +78,13 @@ static Rectangle red_reject_box = {0};
 static const Color bg_color = { 0xf6, 0x94, 0xe8, 0xff };
 static const Color text_color = { 0xc8, 0x2b, 0xb2, 0xff };
 static const Color player_colors[] = { {
-    230, 41, 55, 255
+    130, 130, 130, 255 // cinza
     }, {
-    253, 249, 0, 255
+    253, 249, 0, 255   // amarelo
     }, {
-    0, 228, 48, 255
+    0, 228, 48, 255    // verde
     }, {
-    0, 121, 241, 255
+    0, 121, 241, 255   // azul
 } };
 
 static Vector2 ready_txt = { 0 };
@@ -188,8 +188,6 @@ void UpdateGameplayScreen(void)
                 notif = 2;
                 current_turn = 0;
                 is_my_turn = (0 == player_id);
-                LOG_DEBUG("%s\n", is_my_turn ? "EU COMECO" : "EU NÃO COMECO");
-                LOG_DEBUG("Meu id é: %d\n", player_id);
                 if (is_my_turn) {
                     notif = 1;
                 }
@@ -204,7 +202,7 @@ void UpdateGameplayScreen(void)
                 break;
             case n_emote:
                 // termina o jogo
-                PlaySound(fxCoin);
+                PlaySound(sounds[buf[i].data[0] % 3]);
                 break;
             case n_buy_batata:
                 batatas[buf[i].data[0]]++;
@@ -235,7 +233,6 @@ void UpdateGameplayScreen(void)
                 intersect_str[2] = arrows[(pos % 8) > 4][direction][1];
                 player_positions[current_turn] = buf[i].data[0];
                 player_coins[current_turn] = buf[i].data[1];
-                LOG_DEBUG("o play %d agora esta em %d e estamos na intersect %d\n", current_turn, player_positions[current_turn], direction);
                 intersection = true;
                 break;
             case n_join:
@@ -275,10 +272,12 @@ void UpdateGameplayScreen(void)
                     pos = (j * PODIUM_SIZE);
                     podium[j].player_id = buf[i].data[pos];
                     podium[j].batatas = buf[i].data[1 + pos];
-                    podium[j].bonus_type = buf[i].data[2 + pos];
-                    memcpy_s(&podium[j].coins, 8, buf[i].data + 3 + pos, 8);
-                    memcpy_s(&podium[j].steps, 8, buf[i].data + 11 + pos, 8);
-                    memcpy_s(&podium[j].emotes, 8, buf[i].data + 19 + pos, 8);
+                    podium[j].current_coins = buf[i].data[2 + pos];
+
+                    podium[j].bonus_type = buf[i].data[3 + pos];
+                    memcpy_s(&podium[j].coins, 8, buf[i].data + 4 + pos, 8);
+                    memcpy_s(&podium[j].steps, 8, buf[i].data + 12 + pos, 8);
+                    memcpy_s(&podium[j].emotes, 8, buf[i].data + 20 + pos, 8);
                 }
                 for (int j = player_count; j < MAX_PLAYERS; ++j)
                 {
@@ -288,9 +287,8 @@ void UpdateGameplayScreen(void)
                 finishScreen = 1;
                 break;
             default:
-                LOG_DEBUG("AAAAAAAAAAAAAAAAAAAAAAAAAAAA\n");
-                finishScreen = 1;
-                return;
+                LOG_DEBUG("Recebemos uma mensagem indecifravel... ignorando...\n");
+                break;
             }
         }
     }
@@ -337,12 +335,51 @@ void UpdateGameplayScreen(void)
         }
         send_client_msg(&m);
     }
+
+    int key = GetCharPressed();
+
+    // Check if more characters have been pressed on the same frame
+    while (key > 0)
+    {
+        if (key >= 49 && key <= 51)
+        {
+            ClientMessage* c = new_emote(room_code, key - 49);
+            send_client_msg(c);
+            free(c);
+        }
+        key = GetCharPressed();  // Check next character in the queue
+    }
 }
 
 // Gameplay Screen Draw logic
 void DrawGameplayScreen(void)
 {
     DrawTexture(bgimg, 0, 0, WHITE);
+
+    if (current_round == 0) {
+        // desenha o botão de ready
+        DrawRectangleRec(green_confirm_box, GREEN);
+        DrawRectangleRec(red_reject_box, RED);
+        DrawTextEx(font, ready_str, (Vector2) { red_reject_box.x - 8.0f - (ready_txt.x / 2), green_confirm_box.y - ready_txt.y - 4.0f }, 20.0f, 4.0f, text_color);
+    } else 
+        if (buy_batata_available) {
+            // desenha o botão de rolar o dado
+            DrawRectangleRec(green_confirm_box, GREEN);
+            DrawRectangleRec(red_reject_box, RED);
+            DrawTextEx(font, buy_str, (Vector2) { red_reject_box.x - 8.0f - (buy_txt.x / 2), green_confirm_box.y - buy_txt.y - 4.0f }, 20.0f, 4.0f, text_color);
+    } else
+     if (intersection) {
+         // desenha o botão de rolar o dado
+         DrawRectangleRec(green_confirm_box, GREEN);
+         DrawRectangleRec(red_reject_box, RED);
+         DrawTextEx(font, intersect_str, (Vector2) { red_reject_box.x - 8.0f - (intersect_txt.x / 2), green_confirm_box.y - intersect_txt.y - 4.0f }, 20.0f, 4.0f, text_color);
+    } else
+    if (is_my_turn) {
+        // desenha o botão de rolar o dado
+        DrawRectangleRec(green_confirm_box, GREEN);
+        DrawRectangleRec(red_reject_box, RED);
+        DrawTextEx(font, roll_str, (Vector2) { red_reject_box.x - 8.0f - (roll_txt.x / 2), green_confirm_box.y - roll_txt.y - 4.0f }, 20.0f, 4.0f, text_color);
+    }
 
     for (int i = 0; i < 4; ++i)
     {
@@ -368,30 +405,6 @@ void DrawGameplayScreen(void)
         int pos_x = 80 * (player_positions[i] % BOARD_WIDTH);
         int pos_y = 80 * (player_positions[i] / BOARD_WIDTH);
         DrawCircle(FIRST_BLOCK_X + pos_x, FIRST_BLOCK_Y - pos_y, 30.0f, player_colors[i]);
-    }
-    if (current_round == 0) {
-        // desenha o botão de ready
-        DrawRectangleRec(green_confirm_box, GREEN);
-        DrawRectangleRec(red_reject_box, RED);
-        DrawTextEx(font, ready_str, (Vector2) { red_reject_box.x - 8.0f - (ready_txt.x / 2), green_confirm_box.y - ready_txt.y - 4.0f }, 20.0f, 4.0f, text_color);
-    } else 
-        if (buy_batata_available) {
-            // desenha o botão de rolar o dado
-            DrawRectangleRec(green_confirm_box, GREEN);
-            DrawRectangleRec(red_reject_box, RED);
-            DrawTextEx(font, buy_str, (Vector2) { red_reject_box.x - 8.0f - (buy_txt.x / 2), green_confirm_box.y - buy_txt.y - 4.0f }, 20.0f, 4.0f, text_color);
-    } else
-     if (intersection) {
-         // desenha o botão de rolar o dado
-         DrawRectangleRec(green_confirm_box, GREEN);
-         DrawRectangleRec(red_reject_box, RED);
-         DrawTextEx(font, intersect_str, (Vector2) { red_reject_box.x - 8.0f - (intersect_txt.x / 2), green_confirm_box.y - intersect_txt.y - 4.0f }, 20.0f, 4.0f, text_color);
-    } else
-    if (is_my_turn) {
-        // desenha o botão de rolar o dado
-        DrawRectangleRec(green_confirm_box, GREEN);
-        DrawRectangleRec(red_reject_box, RED);
-        DrawTextEx(font, roll_str, (Vector2) { red_reject_box.x - 8.0f - (roll_txt.x / 2), green_confirm_box.y - roll_txt.y - 4.0f }, 20.0f, 4.0f, text_color);
     }
 
     DrawCircle(DOT_X, DOT_Y + player_counters[current_turn], 8.0f, player_colors[current_turn]);

@@ -24,7 +24,7 @@
 GameScreen currentScreen = LOGO;
 Font font = { 0 };
 Music music = { 0 };
-Sound fxCoin = { 0 };
+Sound sounds[NOF_SOUNDS] = { 0 };
 Texture2D bgimg = { 0 };
 char ip_addr_str[16] = { 0 };
 char* room_code;
@@ -70,7 +70,9 @@ int main(void)
     font = LoadFontEx("resources/RobotoMonoNerdFontMono-Regular.ttf", 128, 0, 1024);
     SetTextureFilter(font.texture, TEXTURE_FILTER_BILINEAR);
     music = LoadMusicStream("resources/ambient.ogg");
-    fxCoin = LoadSound("resources/coin.wav");
+    sounds[0] = LoadSound("resources/coin.wav");
+    sounds[1] = LoadSound("resources/tuturu.wav");
+    sounds[2] = LoadSound("resources/air-horn.wav");
     Image imOrigin = LoadImage("resources/background.png");
     ImageFormat(&imOrigin, PIXELFORMAT_UNCOMPRESSED_R8G8B8);
     room_code = calloc(ROOM_CODE_SIZE+1, sizeof(char));
@@ -110,7 +112,10 @@ int main(void)
     // Unload global data loaded
     UnloadFont(font);
     UnloadMusicStream(music);
-    UnloadSound(fxCoin);
+    for (unsigned int i = 0; i < NOF_SOUNDS; ++i)
+    {
+        UnloadSound(sounds[i]);
+    }
     UnloadTexture(bgimg);
     free(room_code);
     free(podium);

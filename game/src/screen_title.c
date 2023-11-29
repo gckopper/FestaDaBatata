@@ -128,7 +128,7 @@ void UpdateTitleScreen(void)
             return;
         } 
         finishScreen = 2;   // GAMEPLAY
-        PlaySound(fxCoin);
+        PlaySound(sounds[0]);
         // assumes an ipv4
         int len = 0;
         for (int i = 0; i < IP_SIZE; ++i) {

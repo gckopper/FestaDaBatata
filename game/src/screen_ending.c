@@ -39,6 +39,9 @@ static const float text_height = 48.0f;
 static const float text_spacing = 4.0f;
 static const char const format_string[] = "%.2u  %.5u  %.6u %.5u";
 static const char* const bonus_text[] = {"Moedas", "Passos", "Emotes"};
+static const char const bonus_template[] = "Bonus escolhido: ";
+static Vector2 bonus_text_pos = { 0 };
+static Vector2 bonus_template_pos = { 0 };
 //----------------------------------------------------------------------------------
 // Ending Screen Functions Definition
 //----------------------------------------------------------------------------------
@@ -55,6 +58,12 @@ void InitEndingScreen(void)
     text_start.x = mid_width - (header_size.x / 2);
     text_start.y = 10.0f;
     font_height = header_size.y;
+    Vector2 bonus_text_size = MeasureTextEx(font, bonus_text[0], text_height, text_spacing);
+    Vector2 bonus_template_size = MeasureTextEx(font, bonus_template, text_height, text_spacing);
+    bonus_template_pos.x = mid_width - ((bonus_template_size.x + bonus_text_size.x) / 2);
+    bonus_template_pos.y = GetScreenHeight() - bonus_template_size.y;
+    bonus_text_pos.x = bonus_template_pos.x + bonus_template_size.x;
+    bonus_text_pos.y = GetScreenHeight() - bonus_text_size.y;
 }
 
 // Ending Screen Update logic
@@ -66,7 +75,7 @@ void UpdateEndingScreen(void)
     if (IsKeyPressed(KEY_ENTER) || IsGestureDetected(GESTURE_TAP))
     {
         finishScreen = 1;
-        PlaySound(fxCoin);
+        PlaySound(sounds[0]);
     }
 }
 
@@ -79,15 +88,32 @@ void DrawEndingScreen(void)
     DrawTextEx(font, header, text_start, text_height, text_spacing, DARKBLUE);
     char text[32] = { 0 };
     Vector2 pos = { text_start.x, text_start.y };
+    unsigned long long bonus = 0;
     for (int i = 0; i < MAX_PLAYERS; i++)
     {
         if (podium[i].player_id == MAX_PLAYERS) {
             break;
         }
-        sprintf_s(text, 32, format_string, podium[i].player_id, podium[i].batatas, podium[i].coins, podium[i].emotes);
+        switch (podium[i].bonus_type)
+        {
+        case 0:
+            bonus = podium[i].coins;
+            break;
+        case 1:
+            bonus = podium[i].steps;
+            break;
+        case 2:
+            bonus = podium[i].emotes;
+            break;
+        default:
+            break;
+        }
+        sprintf_s(text, 32, format_string, podium[i].player_id, podium[i].batatas, podium[i].current_coins, bonus);
         pos.y += text_height;
         DrawTextEx(font, text, pos, text_height, text_spacing, DARKBLUE);
     }
+    DrawTextEx(font, bonus_text[podium[0].bonus_type], bonus_text_pos, text_height, text_spacing, DARKBLUE);
+    DrawTextEx(font, bonus_template, bonus_template_pos, text_height, text_spacing, DARKBLUE);
 }
 
 // Ending Screen Unload logic

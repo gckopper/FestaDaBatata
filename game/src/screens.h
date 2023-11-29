@@ -38,7 +38,8 @@ typedef enum GameScreen { UNKNOWN = -1, LOGO = 0, TITLE, OPTIONS, GAMEPLAY, ENDI
 extern GameScreen currentScreen;
 extern Font font;
 extern Music music;
-extern Sound fxCoin;
+#define NOF_SOUNDS 3
+extern Sound sounds[];
 extern Texture2D bgimg;
 extern char ip_addr_str[16];
 extern char* room_code;
