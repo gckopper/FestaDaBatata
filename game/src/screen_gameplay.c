@@ -28,7 +28,7 @@
 
 #define NOTIF_FOR 180
 
-static const char* const notif_msg[] = {"É A SUA VEZ", "O JOGO ESTÁ COMEÇANDO", "AÇÃO INVÁLIDA", "VOCÊ ROLOU UM 0"};
+static const char* const notif_msg[] = {"\xc3\x89 A SUA VEZ", "O JOGO EST\xc3\x81 COME\xc3\x87\ANDO", "A\xc3\x87\xc3\x83O INV\xc3\x81LIDA", "VOC\xc3\x8a ROLOU UM 0"};
 static Vector2 notif_loc[] = {{0}, {0}, {0}, {0}};
 //----------------------------------------------------------------------------------
 // Module Variables Definition (local)
@@ -91,7 +91,7 @@ static Vector2 ready_txt = { 0 };
 static Vector2 roll_txt = { 0 };
 static Vector2 intersect_txt = { 0 };
 static Vector2 buy_txt = { 0 };
-static char ready_str[] = "Pronto/Não pronto";
+static char ready_str[] = "Pronto/N\xc3\xa3o pronto";
 static char roll_str[] = "Rolar o dado";
 static char intersect_str[] = "^/^";
 static char buy_str[] = "Comprar batata";

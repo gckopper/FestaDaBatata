@@ -54,9 +54,9 @@ static Rectangle ip_rects[IP_SIZE] = {0, 0, 0, 0 };
 static int letterCount[IP_SIZE] = { 0, 0, 0, 0 };
 static bool show_wrong_ip_msg = false;
 static Vector2 wrong_ip_msg_loc = { 0 };
-static const char* wrong_ip_msg = "O ENDEREÇO IP É INVÁLIDO";
+static const char* wrong_ip_msg = "O ENDERE\xc3\x87O IP \xc3\x89 INV\xc3\x81LIDO";
 static Vector2 ip_title_loc = { 0 };
-static const char* ip_title = "Endereço ip do servidor";
+static const char* ip_title = "Endere\xc3\xa7o ip do servidor";
 static Vector2 room_code_title_loc = { 0 };
 static const char* room_code_title = "Código da sala";
 
